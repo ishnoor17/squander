@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
+from .detectors import detect_context_resend
 from .parser import default_session_log_dir, iter_session_files, parse_session_file
 from .pricing import load_prices
 from .sessions import SessionSummary, summarize_session
@@ -82,6 +83,41 @@ def _analyze(args: argparse.Namespace) -> int:
           f"{_fmt_tokens(sum(s.cache_read_tokens for s in summaries)):>9} "
           f"{_fmt_tokens(sum(s.cache_write_tokens for s in summaries)):>9} "
           f"{total_label:>10}")
+
+    all_findings = [
+        (s, f) for s in summaries for f in detect_context_resend(s.records, prices)
+    ]
+    if all_findings:
+        print("\nWaste findings")
+        print("--------------")
+        last_session = None
+        for s, f in all_findings:
+            if s.session_id != last_session:
+                model_label = s.models[0] if len(s.models) == 1 else "mixed models"
+                print(
+                    f"Session {s.session_id[:8]}  *  {_fmt_cost(s)}  *  {model_label}"
+                )
+                last_session = s.session_id
+            print(
+                f"  !  Review loop detected: ~{_fmt_tokens(f.avg_context_tokens)} tokens "
+                f"of context re-sent {f.calls}x in a row"
+            )
+            if f.redundant_cost_usd is not None:
+                if s.cost_usd:
+                    share = f" ({f.redundant_cost_usd / s.cost_usd:.0%} of this session)"
+                else:
+                    share = ""
+                print(
+                    f"     Re-billed cost ~ ${f.redundant_cost_usd:.4f}{share}"
+                )
+            else:
+                print(
+                    f"     Re-billed tokens: {_fmt_tokens(f.redundant_tokens)} "
+                    f"(cost unknown -- model not in prices.yaml)"
+                )
+            print(
+                "     A fresh session or trimmed context would have cut most of it."
+            )
 
     unpriced = sorted({m for s in summaries for m in s.unpriced_models})
     if unpriced:

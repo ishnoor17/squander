@@ -27,8 +27,32 @@ is trusted.
 - [x] **Phase 1 — Reproduce.** Aggregate into per-session totals and
       dollar cost; validated against `npx ccusage session` — token
       counts and costs match to the microdollar on every session.
-- [ ] **Phase 2 — Diagnose.** One waste detector: repeated large-context
+- [x] **Phase 2 — Diagnose.** One waste detector: repeated large-context
       re-sends across consecutive turns (the review-loop pattern).
+
+## The detector
+
+`squander analyze` flags **review-loop waste**: runs of consecutive API
+calls that each re-read a large, mostly-overlapping context prefix.
+Every call after the run's first re-bills that context (as cache-read
+tokens); a fresh session or trimmed context would have avoided most of
+it. The rule is deliberately narrow — one unambiguous signal, not a
+vague efficiency score: at least 3 consecutive main-chain calls, each
+re-reading ≥20K cached tokens covering ≥80% of the previous call's
+context.
+
+```
+Waste findings
+--------------
+Session d39cafe7  *  $16.0853  *  mixed models
+  !  Review loop detected: ~198.0K tokens of context re-sent 39x in a row
+     Re-billed cost ~ $7.4345 (46% of this session)
+     A fresh session or trimmed context would have cut most of it.
+```
+
+The re-billed cost is computed from exact logged token counts at each
+call's own model rate; the `~` marks that "how much a trimmed context
+would have saved" is inherently an approximation.
 
 ## Data source
 
