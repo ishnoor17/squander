@@ -1,24 +1,42 @@
 # All prices are USD per 1,000,000 tokens.
 # Update these as providers change pricing -- no code change needed.
 #
-# Verify these numbers against current provider pricing before trusting
-# them: treat the values below as placeholders to be confirmed, not gospel.
+# Sources: Anthropic pricing as of 2026-07-19, validated by reproducing
+# ccusage's per-session costs to the exact digit.
+#   - cache_read is 0.1x the input price.
+#   - Cache writes bill by TTL: 1.25x input for the 5-minute cache
+#     (cache_write_5m), 2x input for the 1-hour cache (cache_write_1h).
+#     Claude Code uses the 1-hour cache, so cache_write_1h is what
+#     usually applies; the session logs break writes down by TTL.
+#   - claude-sonnet-5 is listed at its INTRODUCTORY pricing
+#     ($2.00/$10.00), which Anthropic charges through 2026-08-31.
+#     After that date, update to the standard $3.00/$15.00 (cache_read
+#     0.30, cache_write_5m 3.75, cache_write_1h 6.00).
 models:
+  claude-fable-5:
+    input: 10.00
+    output: 50.00
+    cache_read: 1.00
+    cache_write_5m: 12.50
+    cache_write_1h: 20.00
   claude-opus-4-8:
-    input: 15.00
-    output: 75.00
-    cache_read: 1.50
-    cache_write: 18.75
+    input: 5.00
+    output: 25.00
+    cache_read: 0.50
+    cache_write_5m: 6.25
+    cache_write_1h: 10.00
   claude-sonnet-5:
-    input: 3.00
-    output: 15.00
-    cache_read: 0.30
-    cache_write: 3.75
+    input: 2.00
+    output: 10.00
+    cache_read: 0.20
+    cache_write_5m: 2.50
+    cache_write_1h: 4.00
   claude-haiku-4-5:
     input: 1.00
     output: 5.00
     cache_read: 0.10
-    cache_write: 1.25
+    cache_write_5m: 1.25
+    cache_write_1h: 2.00
   # add models as needed
 
 defaults:

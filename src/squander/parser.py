@@ -38,6 +38,11 @@ class UsageRecord:
     output_tokens: int
     cache_read_tokens: int
     cache_write_tokens: int
+    # Breakdown of cache_write_tokens by cache TTL, when the log provides
+    # it. 1-hour-TTL writes bill at a higher rate than 5-minute ones, so
+    # the split matters for accurate pricing later.
+    cache_write_5m_tokens: Optional[int]
+    cache_write_1h_tokens: Optional[int]
     reasoning_tokens: Optional[int]
     is_sidechain: bool
 
@@ -74,6 +79,14 @@ def _record_from_entry(entry: dict, fallback_session_id: str) -> Optional[UsageR
     if not message_id or not timestamp_raw:
         return None
 
+    cache_creation = usage.get("cache_creation")
+    if isinstance(cache_creation, dict):
+        cache_write_5m = cache_creation.get("ephemeral_5m_input_tokens")
+        cache_write_1h = cache_creation.get("ephemeral_1h_input_tokens")
+    else:
+        cache_write_5m = None
+        cache_write_1h = None
+
     return UsageRecord(
         session_id=entry.get("sessionId", fallback_session_id),
         message_id=message_id,
@@ -84,6 +97,8 @@ def _record_from_entry(entry: dict, fallback_session_id: str) -> Optional[UsageR
         output_tokens=usage.get("output_tokens", 0),
         cache_read_tokens=usage.get("cache_read_input_tokens", 0),
         cache_write_tokens=usage.get("cache_creation_input_tokens", 0),
+        cache_write_5m_tokens=cache_write_5m,
+        cache_write_1h_tokens=cache_write_1h,
         reasoning_tokens=usage.get("reasoning_tokens"),
         is_sidechain=bool(entry.get("isSidechain", False)),
     )

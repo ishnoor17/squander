@@ -24,8 +24,9 @@ is trusted.
 - [x] **Phase 0 — Parse.** Read Claude Code's local JSONL session logs
       into structured per-API-call records (timestamp, model, input /
       output / cache-read / cache-write / reasoning tokens).
-- [ ] **Phase 1 — Reproduce.** Aggregate into per-session totals and
-      dollar cost; validate against `npx ccusage session`.
+- [x] **Phase 1 — Reproduce.** Aggregate into per-session totals and
+      dollar cost; validated against `npx ccusage session` — token
+      counts and costs match to the microdollar on every session.
 - [ ] **Phase 2 — Diagnose.** One waste detector: repeated large-context
       re-sends across consecutive turns (the review-loop pattern).
 
@@ -47,9 +48,30 @@ record per real API call.
 
 Model prices live in [`prices.yaml`](prices.yaml), never in code —
 providers change them, and a config file means no redeploy to update.
-Prices are USD per 1,000,000 tokens. **Verify the shipped values
-against current provider pricing before trusting them** — they're
-placeholders to be confirmed, not gospel.
+Prices are USD per 1,000,000 tokens.
+
+Two pricing details that matter for accuracy (both validated against
+ccusage's output):
+
+- **Cache writes bill by TTL** — 1.25× the input price for the
+  5-minute cache, 2× for the 1-hour cache. Claude Code uses the
+  1-hour cache, and the session logs break writes down by TTL, so
+  squander prices each bucket at its real rate.
+- **`claude-sonnet-5` ships at its introductory pricing** ($2/$10 per
+  1M), which applies through 2026-08-31 — update `prices.yaml` to the
+  standard rates after that date.
+
+## Usage
+
+```bash
+squander analyze                 # all sessions under ~/.claude/projects
+squander analyze --logs-dir DIR  # a different log directory
+squander analyze --prices FILE   # a different prices.yaml
+```
+
+To validate against ccusage yourself: run `npx ccusage session` and
+compare its per-session token totals and costs with
+`squander analyze` — they should match exactly.
 
 ## Estimates vs. exact counts
 

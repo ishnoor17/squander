@@ -40,6 +40,16 @@ def test_captures_full_token_split_for_deduplicated_message(records):
     assert aaa.request_id == "req_AAA"
 
 
+def test_cache_write_ttl_breakdown_captured_when_present(records):
+    aaa = next(r for r in records if r.message_id == "msg_AAA111")
+    assert aaa.cache_write_5m_tokens == 100
+    assert aaa.cache_write_1h_tokens == 400
+    # msg_BBB222 has no cache_creation breakdown in its usage block.
+    bbb = next(r for r in records if r.message_id == "msg_BBB222")
+    assert bbb.cache_write_5m_tokens is None
+    assert bbb.cache_write_1h_tokens is None
+
+
 def test_preserves_sidechain_flag_and_per_message_model(records):
     ccc = next(r for r in records if r.message_id == "msg_CCC333")
     assert ccc.is_sidechain is True
