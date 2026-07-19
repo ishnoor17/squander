@@ -1,0 +1,23 @@
+[project]
+name = "squander"
+version = "0.1.0"
+description = "Diagnoses wasted tokens in Claude Code sessions."
+requires-python = ">=3.9"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+squander = "squander.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

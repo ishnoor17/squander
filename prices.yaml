@@ -1,0 +1,28 @@
+# All prices are USD per 1,000,000 tokens.
+# Update these as providers change pricing -- no code change needed.
+#
+# Verify these numbers against current provider pricing before trusting
+# them: treat the values below as placeholders to be confirmed, not gospel.
+models:
+  claude-opus-4-8:
+    input: 15.00
+    output: 75.00
+    cache_read: 1.50
+    cache_write: 18.75
+  claude-sonnet-5:
+    input: 3.00
+    output: 15.00
+    cache_read: 0.30
+    cache_write: 3.75
+  claude-haiku-4-5:
+    input: 1.00
+    output: 5.00
+    cache_read: 0.10
+    cache_write: 1.25
+  # add models as needed
+
+defaults:
+  # fallback multiplier for character-based estimates when exact counts
+  # aren't available; clearly label any figure derived from this as an
+  # estimate.
+  chars_per_token: 3.8
