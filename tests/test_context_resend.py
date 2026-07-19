@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from squander.detectors import detect_context_resend
+from squander.detectors import ContextResendFinding, detect_context_resend, is_significant
 from squander.parser import UsageRecord
 from squander.pricing import load_prices
 
@@ -117,3 +117,34 @@ def test_low_overlap_breaks_run(prices):
 
 def test_empty_records(prices):
     assert detect_context_resend([], prices) == []
+
+
+def _finding(cost):
+    return ContextResendFinding(
+        session_id="sess-1",
+        start=T0,
+        end=T0 + timedelta(minutes=5),
+        calls=4,
+        avg_context_tokens=40_000,
+        redundant_tokens=120_000,
+        redundant_cost_usd=cost,
+    )
+
+
+def test_significant_when_cost_clears_absolute_floor():
+    assert is_significant(_finding(0.25), session_cost_usd=100.0)
+
+
+def test_significant_when_share_of_session_is_large():
+    # $0.05 is under the absolute floor but 50% of a $0.10 session.
+    assert is_significant(_finding(0.05), session_cost_usd=0.10)
+
+
+def test_insignificant_when_small_in_both_senses():
+    assert not is_significant(_finding(0.05), session_cost_usd=100.0)
+
+
+def test_unknown_cost_is_always_significant():
+    # Unknown must not be silently dropped as if it were small.
+    assert is_significant(_finding(None), session_cost_usd=100.0)
+    assert is_significant(_finding(None), session_cost_usd=None)

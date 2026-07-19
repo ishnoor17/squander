@@ -41,6 +41,13 @@ MIN_RUN_CALLS = 3
 # total context for the two to count as "the same context re-sent".
 OVERLAP_FRACTION = 0.8
 
+# Reporting floor: a finding is only worth surfacing if its re-billed
+# cost clears an absolute floor or a meaningful share of the session.
+# Detection and reporting are separate judgments -- detect_context_resend
+# returns everything; is_significant decides what deserves attention.
+MIN_REPORT_COST_USD = 0.10
+MIN_REPORT_SHARE = 0.10
+
 
 @dataclass(frozen=True)
 class ContextResendFinding:
@@ -119,3 +126,25 @@ def detect_context_resend(
     flush_run()
 
     return findings
+
+
+def is_significant(
+    finding: ContextResendFinding,
+    session_cost_usd: Optional[float],
+    min_cost_usd: float = MIN_REPORT_COST_USD,
+    min_share: float = MIN_REPORT_SHARE,
+) -> bool:
+    """Whether a finding is worth a user's attention.
+
+    Kept when its re-billed cost clears the absolute floor, or makes up
+    a meaningful share of the session. Findings with unknown cost
+    (unpriced model) are always kept -- unknown must not be silently
+    dropped as if it were small.
+    """
+    if finding.redundant_cost_usd is None:
+        return True
+    if finding.redundant_cost_usd >= min_cost_usd:
+        return True
+    if session_cost_usd:
+        return finding.redundant_cost_usd / session_cost_usd >= min_share
+    return False
