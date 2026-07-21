@@ -27,6 +27,14 @@ def test_skips_non_assistant_and_usage_less_lines(records):
     assert len(records) == 3
 
 
+def test_skips_malformed_entry_instead_of_raising(records):
+    # msg_EEE555 has a valid usage block but an unparseable timestamp
+    # (simulating a partially-written final line) -- it must be
+    # dropped rather than crashing the whole file's parse.
+    message_ids = {r.message_id for r in records}
+    assert "msg_EEE555" not in message_ids
+
+
 def test_captures_full_token_split_for_deduplicated_message(records):
     aaa = next(r for r in records if r.message_id == "msg_AAA111")
     assert aaa.session_id == "fixture-session-001"

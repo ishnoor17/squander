@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from squander import __version__
 from squander.cli import main
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_session.jsonl"
@@ -62,3 +63,30 @@ def test_empty_logs_dir_json(tmp_path, capsys):
         capsys, "--logs-dir", str(tmp_path), "--prices", str(REPO_PRICES), "--json"
     )
     assert json.loads(out) == {"sessions": [], "findings": []}
+
+
+def test_version_flag_prints_version(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--version"])
+    assert exc_info.value.code == 0
+    assert __version__ in capsys.readouterr().out
+
+
+def test_missing_prices_file_errors_cleanly(logs_dir, capsys):
+    code = main(
+        ["analyze", "--logs-dir", str(logs_dir), "--prices", "/nope/prices.yaml"]
+    )
+    assert code == 1
+    assert "error" in capsys.readouterr().err.lower()
+
+
+def test_malformed_prices_file_errors_cleanly(logs_dir, tmp_path, capsys):
+    bad_prices = tmp_path / "bad_prices.yaml"
+    bad_prices.write_text("models:\n  broken-model:\n    input: 1.00\n")
+    code = main(
+        ["analyze", "--logs-dir", str(logs_dir), "--prices", str(bad_prices)]
+    )
+    assert code == 1
+    err = capsys.readouterr().err
+    assert "error" in err.lower()
+    assert "bad_prices.yaml" in err

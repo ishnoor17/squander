@@ -8,6 +8,9 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+import yaml
+
+from . import __version__
 from .detectors import ContextResendFinding, detect_context_resend, is_significant
 from .parser import default_session_log_dir, iter_session_files, parse_session_file
 from .pricing import PriceBook, load_prices
@@ -181,7 +184,16 @@ def _analyze(args: argparse.Namespace) -> int:
         print(f"error: session log directory not found: {logs_dir}", file=sys.stderr)
         return 1
 
-    prices = load_prices(args.prices)
+    try:
+        prices = load_prices(args.prices)
+    except FileNotFoundError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    except (yaml.YAMLError, KeyError, ValueError) as e:
+        prices_path = args.prices or "the default prices.yaml"
+        print(f"error: could not load prices from {prices_path}: {e}", file=sys.stderr)
+        return 1
+
     summaries, findings = _collect(logs_dir, prices)
 
     if not summaries:
@@ -202,6 +214,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="squander",
         description="Diagnose wasted tokens in Claude Code sessions.",
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

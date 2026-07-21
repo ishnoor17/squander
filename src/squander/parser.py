@@ -22,7 +22,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator, Optional, Union
+from typing import Iterator, List, Optional, Union
 
 
 @dataclass(frozen=True)
@@ -104,7 +104,7 @@ def _record_from_entry(entry: dict, fallback_session_id: str) -> Optional[UsageR
     )
 
 
-def parse_session_file(path: Union[Path, str]) -> list:
+def parse_session_file(path: Union[Path, str]) -> List[UsageRecord]:
     """Parse one Claude Code session JSONL file into deduplicated usage records.
 
     Each API call is logged as multiple JSONL lines (one per content
@@ -114,13 +114,14 @@ def parse_session_file(path: Union[Path, str]) -> list:
     (e.g. still streaming when the log was read), are skipped.
     Malformed lines are skipped rather than raising, since session
     logs are append-only and can contain a partially written final
-    line.
+    line -- this covers both invalid JSON and JSON with an
+    unexpected shape (e.g. a truncated timestamp field).
     """
     path = Path(path)
     fallback_session_id = path.stem
 
     seen_message_ids = set()
-    records = []
+    records: List[UsageRecord] = []
 
     with path.open("r", encoding="utf-8") as f:
         for line in f:
@@ -132,7 +133,11 @@ def parse_session_file(path: Union[Path, str]) -> list:
             except json.JSONDecodeError:
                 continue
 
-            record = _record_from_entry(entry, fallback_session_id)
+            try:
+                record = _record_from_entry(entry, fallback_session_id)
+            except (ValueError, TypeError):
+                # e.g. a malformed timestamp on a truncated final line.
+                continue
             if record is None:
                 continue
             if record.message_id in seen_message_ids:

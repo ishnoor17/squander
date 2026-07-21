@@ -9,3 +9,4 @@
 
 {"not valid json"
 {"type": "assistant", "message": {"model": "claude-sonnet-5", "id": "msg_DDD444", "type": "message", "role": "assistant", "content": [{"type": "text", "text": "no usage field here"}]}, "requestId": "req_DDD", "uuid": "a6", "timestamp": "2026-07-16T14:45:26.000Z", "sessionId": "fixture-session-001", "cwd": "/repo"}
+{"type": "assistant", "message": {"model": "claude-sonnet-5", "id": "msg_EEE555", "type": "message", "role": "assistant", "content": [{"type": "text", "text": "truncated final line"}], "usage": {"input_tokens": 5, "output_tokens": 5, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}}, "requestId": "req_EEE", "uuid": "a7", "timestamp": "not-a-real-timestamp", "sessionId": "fixture-session-001", "cwd": "/repo"}
